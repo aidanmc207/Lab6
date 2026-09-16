@@ -1,0 +1,40 @@
+# ---------------------------------------------------------------------------
+# ExpresoFast - Laboratorio 6 (IF0009) - Plantilla de configuracion
+# ---------------------------------------------------------------------------
+# Copie este archivo a src/main/resources/application.properties y reemplace
+# los marcadores CAMBIE_ESTO por los valores de su equipo. El archivo real NO
+# debe subirse al repositorio con credenciales productivas.
+# ---------------------------------------------------------------------------
+spring.application.name=ExpresoFast
+
+# --- Conexion a SQL Server -------------------------------------------------
+spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=ExpresoFastC4H845_II2026;encrypt=true;trustServerCertificate=true
+spring.datasource.username=CAMBIE_ESTO_USUARIO
+spring.datasource.password=CAMBIE_ESTO_PASSWORD
+spring.datasource.driver-class-name=com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+# Con autenticacion de Windows use en su lugar:
+# spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=ExpresoFastC4H845_II2026;integratedSecurity=true;encrypt=true;trustServerCertificate=true
+
+# --- JPA / Hibernate -------------------------------------------------------
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.properties.hibernate.default_schema=dbo
+spring.jpa.hibernate.naming.physical-strategy=org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.open-in-view=false
+spring.jpa.properties.hibernate.generate_statistics=true
+logging.level.org.hibernate.SQL=DEBUG
+logging.level.org.hibernate.stat=DEBUG
+
+# --- Servidor --------------------------------------------------------------
+server.port=8080
+spring.jackson.serialization.write-dates-as-timestamps=false
+
+# --- Seguridad JWT ---------------------------------------------------------
+# Minimo 32 caracteres (256 bits) porque los tokens se firman con HS256.
+# Recomendado: exportar la variable de entorno EXPRESOFAST_JWT_SECRET.
+expresofast.jwt.secret=${EXPRESOFAST_JWT_SECRET:CAMBIE_ESTO_POR_UNA_CLAVE_DE_AL_MENOS_32_CARACTERES}
+expresofast.jwt.expiration-ms=7200000
+
+logging.level.org.springframework.security=INFO

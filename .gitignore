@@ -1,0 +1,27 @@
+# Compilacion Maven
+target/
+*.jar
+*.war
+cp.txt
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+
+# Sistema operativo
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Configuracion real con credenciales de la maquina local.
+# Se versiona unicamente backend/application.properties.template.
+backend/src/main/resources/application.properties
