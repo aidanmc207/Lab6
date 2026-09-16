@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpresoFast · Iniciar sesión</title>
+    <meta name="description" content="Acceso autenticado al tablero de logística de ExpresoFast">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="pagina-login">
+
+<main class="login-wrap">
+    <section class="login-card" aria-labelledby="tituloLogin">
+
+        <header class="login-head">
+            <span class="brand-mark brand-mark-lg" aria-hidden="true">EF</span>
+            <h1 id="tituloLogin">ExpresoFast</h1>
+            <p class="login-sub">Plataforma de logística y monitoreo de envíos express</p>
+        </header>
+
+        <form id="formLogin" novalidate autocomplete="on">
+            <label class="campo">
+                <span>Usuario <abbr title="obligatorio">*</abbr></span>
+                <input type="text" id="username" name="username" required
+                       maxlength="50" autocomplete="username" autofocus
+                       placeholder="admin" aria-describedby="ayudaUsuario">
+                <small id="ayudaUsuario" class="ayuda">Credenciales entregadas por el administrador.</small>
+            </label>
+
+            <label class="campo">
+                <span>Contraseña <abbr title="obligatorio">*</abbr></span>
+                <input type="password" id="password" name="password" required
+                       maxlength="100" autocomplete="current-password" placeholder="••••••••">
+            </label>
+
+            <p id="errorLogin" class="login-error" role="alert" hidden></p>
+
+            <button type="submit" class="btn btn-primario btn-bloque" id="btnEntrar">
+                Iniciar sesión
+            </button>
+        </form>
+
+        <footer class="login-pie">
+            <p class="ayuda">
+                La sesión se mantiene con un <strong>token JWT</strong> guardado en
+                <code>localStorage</code> y enviado en cada petición como
+                <code>Authorization: Bearer &lt;token&gt;</code>.
+            </p>
+            <p class="ayuda">IF0009 · Desarrollo de Software IV · Laboratorio 6 · Carné C4H845 · II-2026</p>
+        </footer>
+    </section>
+</main>
+
+<script>
+'use strict';
+
+/* Modulo de autenticacion: unica pantalla publica de la aplicacion. */
+const API_LOGIN = 'http://localhost:8080/api/auth/login';
+
+const CLAVE_TOKEN = 'jwt_token';
+const CLAVE_USUARIO = 'jwt_username';
+const CLAVE_NOMBRE = 'jwt_nombre';
+const CLAVE_ROLES = 'jwt_roles';
+const CLAVE_EXPIRA = 'jwt_expira';
+
+const formulario = document.querySelector('#formLogin');
+const cajaError = document.querySelector('#errorLogin');
+const boton = document.querySelector('#btnEntrar');
+
+/* Si ya hay un token vigente se evita pedir credenciales de nuevo. */
+(function redirigirSiHaySesion() {
+    const token = localStorage.getItem(CLAVE_TOKEN);
+    const expira = localStorage.getItem(CLAVE_EXPIRA);
+
+    if (token && (!expira || new Date(expira) > new Date())) {
+        window.location.replace('index.html');
+    }
+})();
+
+function mostrarError(mensaje) {
+    cajaError.textContent = mensaje;
+    cajaError.hidden = false;
+}
+
+/* El tablero redirige aqui con ?motivo=... cuando la API responde 401. */
+(function mostrarMotivoDeRegreso() {
+    const motivo = new URLSearchParams(window.location.search).get('motivo');
+    if (motivo) mostrarError(motivo);
+})();
+
+formulario.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    cajaError.hidden = true;
+
+    if (!formulario.reportValidity()) return;
+
+    boton.disabled = true;
+    boton.textContent = 'Validando…';
+
+    try {
+        const respuesta = await fetch(API_LOGIN, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({
+                username: document.querySelector('#username').value.trim(),
+                password: document.querySelector('#password').value
+            })
+        });
+
+        const texto = await respuesta.text();
+        const cuerpo = texto ? JSON.parse(texto) : null;
+
+        if (!respuesta.ok) {
+            throw new Error((cuerpo && cuerpo.mensaje) || `No fue posible iniciar sesión (HTTP ${respuesta.status})`);
+        }
+
+        /* Token, usuario y roles quedan disponibles para el tablero protegido. */
+        localStorage.setItem(CLAVE_TOKEN, cuerpo.token);
+        localStorage.setItem(CLAVE_USUARIO, cuerpo.username);
+        localStorage.setItem(CLAVE_NOMBRE, cuerpo.nombreCompleto || cuerpo.username);
+        localStorage.setItem(CLAVE_ROLES, JSON.stringify(cuerpo.roles || []));
+        localStorage.setItem(CLAVE_EXPIRA, cuerpo.expirationTime || '');
+
+        window.location.href = 'index.html';
+    } catch (error) {
+        const sinRed = error instanceof TypeError;
+        mostrarError(sinRed
+            ? 'No se pudo contactar la API en http://localhost:8080. Verifique que el backend esté ejecutándose.'
+            : error.message);
+        document.querySelector('#password').value = '';
+    } finally {
+        boton.disabled = false;
+        boton.textContent = 'Iniciar sesión';
+    }
+});
+</script>
+</body>
+</html>
