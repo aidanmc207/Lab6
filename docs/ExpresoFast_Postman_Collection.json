@@ -1,0 +1,493 @@
+{
+  "info": {
+    "_postman_id": "e1f2a3b4-c5d6-4a7b-8c9d-0e1f2a3b4c5d",
+    "name": "ExpresoFast - Lab 6 (JWT + RBAC)",
+    "description": "Coleccion de pruebas de la API REST de ExpresoFast (IF0009 - Laboratorio 6, carne C4H845).\n\nFlujo sugerido:\n1. Ejecute '01 Login ADMIN' (guarda automaticamente {{token}} y {{token_admin}}).\n2. Pruebe los endpoints de la carpeta 'Envios'.\n3. Cambie de rol ejecutando '02 Login OPERADOR' o '03 Login CONDUCTOR' y repita las llamadas para observar los 403 de la matriz RBAC.\n\nUsuarios de prueba: admin/admin123, operador1/oper123, conductor1/cond123.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "token_admin", "value": "", "type": "string" },
+    { "key": "token_operador", "value": "", "type": "string" },
+    { "key": "token_conductor", "value": "", "type": "string" },
+    { "key": "envioId", "value": "1", "type": "string" },
+    { "key": "vehiculoId", "value": "1", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Autenticacion",
+      "item": [
+        {
+          "name": "01 Login ADMIN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test('Devuelve token', () => pm.expect(cuerpo.token).to.be.a('string').and.not.empty);",
+                  "pm.test('Incluye ROLE_ADMIN', () => pm.expect(cuerpo.roles).to.include('ROLE_ADMIN'));",
+                  "pm.collectionVariables.set('token', cuerpo.token);",
+                  "pm.collectionVariables.set('token_admin', cuerpo.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+            "description": "Endpoint publico. Devuelve el token JWT, el nombre completo, los roles y la fecha de expiracion."
+          }
+        },
+        {
+          "name": "02 Login OPERADOR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.collectionVariables.set('token', cuerpo.token);",
+                  "pm.collectionVariables.set('token_operador', cuerpo.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"operador1\",\n  \"password\": \"oper123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "03 Login CONDUCTOR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.collectionVariables.set('token', cuerpo.token);",
+                  "pm.collectionVariables.set('token_conductor', cuerpo.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"conductor1\",\n  \"password\": \"cond123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "04 Login con credenciales invalidas (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "pm.test('No revela detalles internos', () => pm.expect(pm.response.text()).to.not.include('Exception'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"clave-incorrecta\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "05 Perfil del portador del token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/auth/perfil", "host": ["{{baseUrl}}"], "path": ["api", "auth", "perfil"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Envios",
+      "item": [
+        {
+          "name": "GET /api/envios/optimizados (ADMIN, OPERADOR, CONDUCTOR)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const lista = pm.response.json();",
+                  "if (Array.isArray(lista) && lista.length > 0) {",
+                  "    pm.collectionVariables.set('envioId', lista[0].id);",
+                  "    pm.test('El DTO no expone entidades JPA', () => pm.expect(lista[0]).to.have.property('placaVehiculo'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/envios/optimizados",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "envios", "optimizados"]
+            }
+          }
+        },
+        {
+          "name": "GET /api/envios/optimizados sin token (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/envios/optimizados",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "envios", "optimizados"]
+            }
+          }
+        },
+        {
+          "name": "GET /api/envios/resumen",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/envios/resumen", "host": ["{{baseUrl}}"], "path": ["api", "envios", "resumen"] }
+          }
+        },
+        {
+          "name": "POST /api/envios (ADMIN, OPERADOR)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const creado = pm.response.json();",
+                  "pm.collectionVariables.set('envioId', creado.id);",
+                  "pm.test('Nace en PENDIENTE', () => pm.expect(creado.estadoEnvio).to.eql('PENDIENTE'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_admin}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigoRastreo\": \"EXP-7788\",\n  \"direccionDestino\": \"Paraiso, Cartago, 200m sur de la iglesia\",\n  \"pesoKg\": 15.50,\n  \"costo\": 4200.00,\n  \"vehiculoId\": 1,\n  \"conductorId\": 1\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/envios", "host": ["{{baseUrl}}"], "path": ["api", "envios"] }
+          }
+        },
+        {
+          "name": "POST /api/envios con datos invalidos (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test('Detalla el error por campo', () => pm.expect(cuerpo.errores).to.have.property('codigoRastreo'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_admin}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigoRastreo\": \"PAQUETE-1\",\n  \"direccionDestino\": \"\",\n  \"pesoKg\": -3,\n  \"costo\": -100,\n  \"vehiculoId\": 1,\n  \"conductorId\": 1\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/envios", "host": ["{{baseUrl}}"], "path": ["api", "envios"] },
+            "description": "Verifica @Pattern(^EXP-\\d{4}$), @NotBlank y @Positive del EnvioRequestDTO."
+          }
+        },
+        {
+          "name": "POST /api/envios como CONDUCTOR (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('403 Forbidden', () => pm.response.to.have.status(403));"]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_conductor}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigoRastreo\": \"EXP-6655\",\n  \"direccionDestino\": \"Turrialba, Cartago\",\n  \"pesoKg\": 10.00,\n  \"costo\": 3000.00,\n  \"vehiculoId\": 1,\n  \"conductorId\": 1\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/envios", "host": ["{{baseUrl}}"], "path": ["api", "envios"] }
+          }
+        },
+        {
+          "name": "PATCH /api/envios/{id}/estado (ADMIN, CONDUCTOR)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Estado actualizado', () => pm.expect(pm.response.json().estadoEnvio).to.eql('EN_TRANSITO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_conductor}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevoEstado\": \"EN_TRANSITO\",\n  \"observaciones\": \"Paquete cargado en la unidad y en ruta\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/envios/{{envioId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "envios", "{{envioId}}", "estado"]
+            },
+            "description": "Genera automaticamente un registro en BitacoraEnvio con el usuario del token."
+          }
+        },
+        {
+          "name": "PATCH transicion invalida (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));",
+                  "pm.test('Mensaje de transicion', () => pm.expect(pm.response.json().mensaje).to.include('Transici'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_admin}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevoEstado\": \"PENDIENTE\",\n  \"observaciones\": \"Intento de regresar un envio ya entregado\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/envios/3/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "envios", "3", "estado"]
+            },
+            "description": "El envio 3 de las semillas esta ENTREGADO: la regla InvalidStateTransitionException debe rechazar el cambio."
+          }
+        },
+        {
+          "name": "GET /api/envios/{id}/bitacora (ADMIN, OPERADOR)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const filas = pm.response.json();",
+                  "if (filas.length > 0) {",
+                  "    pm.test('Incluye usuario actuante', () => pm.expect(filas[0]).to.have.property('usuario'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_operador}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/envios/{{envioId}}/bitacora",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "envios", "{{envioId}}", "bitacora"]
+            }
+          }
+        },
+        {
+          "name": "GET bitacora como CONDUCTOR (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('403 Forbidden', () => pm.response.to.have.status(403));"]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_conductor}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/envios/{{envioId}}/bitacora",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "envios", "{{envioId}}", "bitacora"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Flota (solo ADMIN)",
+      "item": [
+        {
+          "name": "GET /api/vehiculos",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_admin}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/vehiculos", "host": ["{{baseUrl}}"], "path": ["api", "vehiculos"] }
+          }
+        },
+        {
+          "name": "GET /api/vehiculos como OPERADOR (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('403 Forbidden', () => pm.response.to.have.status(403));"]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_operador}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/vehiculos", "host": ["{{baseUrl}}"], "path": ["api", "vehiculos"] }
+          }
+        },
+        {
+          "name": "POST /api/vehiculos",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_admin}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"CRC-3003\",\n  \"capacidadKg\": 2500.00,\n  \"estado\": \"DISPONIBLE\",\n  \"empresaId\": 1\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/vehiculos", "host": ["{{baseUrl}}"], "path": ["api", "vehiculos"] }
+          }
+        },
+        {
+          "name": "PUT /api/vehiculos/{id}",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_admin}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"CRC-1001\",\n  \"capacidadKg\": 1800.00,\n  \"estado\": \"MANTENIMIENTO\",\n  \"empresaId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/vehiculos/{{vehiculoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehiculos", "{{vehiculoId}}"]
+            }
+          }
+        },
+        {
+          "name": "PATCH masivo por vehiculo",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_admin}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevoEstado\": \"CANCELADO\",\n  \"observaciones\": \"Unidad fuera de servicio por mantenimiento\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/envios/vehiculo/{{vehiculoId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "envios", "vehiculo", "{{vehiculoId}}", "estado"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catalogos",
+      "item": [
+        {
+          "name": "GET /api/catalogos/vehiculos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/catalogos/vehiculos", "host": ["{{baseUrl}}"], "path": ["api", "catalogos", "vehiculos"] }
+          }
+        },
+        {
+          "name": "GET /api/catalogos/conductores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/catalogos/conductores", "host": ["{{baseUrl}}"], "path": ["api", "catalogos", "conductores"] }
+          }
+        },
+        {
+          "name": "GET /api/catalogos/empresas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/catalogos/empresas", "host": ["{{baseUrl}}"], "path": ["api", "catalogos", "empresas"] }
+          }
+        }
+      ]
+    }
+  ]
+}
