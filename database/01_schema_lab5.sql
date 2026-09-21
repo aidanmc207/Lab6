@@ -10,7 +10,10 @@ USE ExpresoFastC4H845_II2026;
 GO
 
 /* ---------- Limpieza idempotente (respetando dependencias de FK) -------- */
-IF OBJECT_ID('dbo.BitacoraEnvio', 'U')     IS NOT NULL DROP TABLE dbo.BitacoraEnvio;  -- depende de Envio (creada en el Lab 6)
+-- Las tablas del Lab 6 se eliminan primero porque dependen de Envio y de Conductor.
+IF OBJECT_ID('dbo.BitacoraEnvio', 'U')     IS NOT NULL DROP TABLE dbo.BitacoraEnvio;
+IF OBJECT_ID('dbo.UsuarioRol', 'U')        IS NOT NULL DROP TABLE dbo.UsuarioRol;
+IF OBJECT_ID('dbo.Usuario', 'U')           IS NOT NULL DROP TABLE dbo.Usuario;
 IF OBJECT_ID('dbo.Envio', 'U')             IS NOT NULL DROP TABLE dbo.Envio;
 IF OBJECT_ID('dbo.Vehiculo', 'U')          IS NOT NULL DROP TABLE dbo.Vehiculo;
 IF OBJECT_ID('dbo.Conductor', 'U')         IS NOT NULL DROP TABLE dbo.Conductor;
