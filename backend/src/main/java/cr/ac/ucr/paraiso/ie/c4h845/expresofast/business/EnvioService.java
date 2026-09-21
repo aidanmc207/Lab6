@@ -47,6 +47,15 @@ public class EnvioService {
             Envio.ENTREGADO, Set.of(),
             Envio.CANCELADO, Set.of());
 
+    /** Lab 7: distancia que separa la tarifa local de la tarifa de ruta nacional. */
+    private static final double DISTANCIA_LOCAL_KM = 5.0;
+
+    /** Lab 7: colones por kilogramo dentro de la zona local (hasta 5 km). */
+    private static final double TARIFA_LOCAL_POR_KG = 120.0;
+
+    /** Lab 7: colones por kilogramo en ruta nacional (mas de 5 km). */
+    private static final double TARIFA_NACIONAL_POR_KG = 500.0;
+
     private final EnvioRepository envioRepository;
     private final VehiculoRepository vehiculoRepository;
     private final ConductorRepository conductorRepository;
@@ -189,6 +198,22 @@ public class EnvioService {
         }
 
         return envioRepository.actualizarEstadoMasivoPorVehiculo(vehiculoId, estado);
+    }
+
+    /** Lab 7: flete segun peso y distancia; sin acceso a base de datos para poder parametrizarlo. */
+    public double calcularTarifa(double pesoKg, double distanciaKm) {
+        if (pesoKg <= 0) {
+            throw new ReglaNegocioException("El peso del envio debe ser mayor a cero");
+        }
+        if (distanciaKm <= 0) {
+            throw new ReglaNegocioException("La distancia del envio debe ser mayor a cero");
+        }
+
+        double tarifaPorKg = distanciaKm <= DISTANCIA_LOCAL_KM
+                ? TARIFA_LOCAL_POR_KG
+                : TARIFA_NACIONAL_POR_KG;
+
+        return pesoKg * tarifaPorKg;
     }
 
     // Validaciones
