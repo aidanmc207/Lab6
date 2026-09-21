@@ -27,10 +27,12 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
                          AuthenticationException authException) throws IOException {
 
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
 
         objectMapper.writeValue(response.getOutputStream(), ErrorResponseDTO.de(
+                "urn:expresofast:error:credenciales",
+                "Autenticacion requerida",
                 HttpStatus.UNAUTHORIZED.value(),
                 HttpStatus.UNAUTHORIZED.getReasonPhrase(),
                 "Se requiere un token JWT valido para consumir este recurso",
