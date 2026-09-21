@@ -69,8 +69,12 @@ public class SecurityConfig {
                         .hasAnyAuthority(ADMIN, OPERADOR, CONDUCTOR)
                         .requestMatchers(HttpMethod.POST, "/api/envios")
                         .hasAnyAuthority(ADMIN, OPERADOR)
+                        // El rol exacto que admite cada transicion lo decide el
+                        // @PreAuthorize del controlador, que si ve el cuerpo del cambio.
+                        .requestMatchers(HttpMethod.PUT, "/api/envios/*/estado")
+                        .hasAnyAuthority(ADMIN, OPERADOR, CONDUCTOR)
                         .requestMatchers(HttpMethod.PATCH, "/api/envios/*/estado")
-                        .hasAnyAuthority(ADMIN, CONDUCTOR)
+                        .hasAnyAuthority(ADMIN, OPERADOR, CONDUCTOR)
                         .requestMatchers(HttpMethod.PATCH, "/api/envios/vehiculo/*/estado")
                         .hasAuthority(ADMIN)
                         .requestMatchers("/api/vehiculos/**").hasAuthority(ADMIN)

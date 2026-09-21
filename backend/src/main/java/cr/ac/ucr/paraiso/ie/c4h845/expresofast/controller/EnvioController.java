@@ -70,9 +70,16 @@ public class EnvioController {
         return ResponseEntity.created(URI.create("/api/envios/" + creado.id())).body(creado);
     }
 
-    /** PATCH /api/envios/{id}/estado -> cambia el estado y genera la bitacora. */
-    @PatchMapping("/{id}/estado")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_CONDUCTOR')")
+    /**
+     * PUT/PATCH /api/envios/{id}/estado -> cambia el estado y genera la bitacora.
+     * Cada rol solo puede provocar la transicion que le corresponde en la operacion:
+     * el operador despacha a EN_TRANSITO, el conductor confirma la ENTREGA y el
+     * administrador puede aplicar cualquiera, incluida la cancelacion.
+     */
+    @RequestMapping(value = "/{id}/estado", method = {RequestMethod.PUT, RequestMethod.PATCH})
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') "
+            + "or (hasAuthority('ROLE_OPERADOR') and #cambio.nuevoEstado == 'EN_TRANSITO') "
+            + "or (hasAuthority('ROLE_CONDUCTOR') and #cambio.nuevoEstado == 'ENTREGADO')")
     public ResponseEntity<EnvioResponseDTO> cambiarEstado(@PathVariable Integer id,
                                                           @Valid @RequestBody CambioEstadoDTO cambio) {
         return ResponseEntity.ok(envioService.cambiarEstado(id, cambio));
