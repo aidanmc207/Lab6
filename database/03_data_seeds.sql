@@ -44,11 +44,14 @@ VALUES ('operador1',
         '$2a$10$JP1JDAGBQgyA1N/FEZPwlevrvF5HQ6utj33nei0r9F9UFsVU334lG',
         'Adriana Vargas Solis', 'operador1@expresofast.cr', 1);
 
--- Contrasena en claro: 'cond123'
-INSERT INTO dbo.Usuario (username, password_hash, nombre_completo, email, activo)
-VALUES ('conductor1',
-        '$2a$10$y4G/amGpyKb3k2E7KrqSIeEvWQszxZ0ABZX2cTkU7Mg8V2Vy1epyG',
-        'Luis Mora Jimenez', 'conductor1@expresofast.cr', 1);
+-- Contrasena en claro: 'cond123'. Queda ligado a su ficha de Conductor para que
+-- la consola solo le muestre los envios asignados a su vehiculo.
+INSERT INTO dbo.Usuario (username, password_hash, nombre_completo, email, activo, conductor_id)
+SELECT 'conductor1',
+       '$2a$10$y4G/amGpyKb3k2E7KrqSIeEvWQszxZ0ABZX2cTkU7Mg8V2Vy1epyG',
+       'Luis Mora Jimenez', 'conductor1@expresofast.cr', 1, c.conductor_id
+FROM dbo.Conductor c
+WHERE c.licencia = 'B1-778899';
 GO
 
 /* ================== 3. Asignacion de roles (RBAC) ========================= */

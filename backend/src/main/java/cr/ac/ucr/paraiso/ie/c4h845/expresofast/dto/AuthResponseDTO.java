@@ -12,10 +12,17 @@ public record AuthResponseDTO(
         String username,
         String nombreCompleto,
         List<String> roles,
-        LocalDateTime expirationTime) {
+        LocalDateTime expirationTime,
+        Integer conductorId) {
 
+    /** Usuario sin conductor asociado (perfiles administrativos y de operacion). */
     public AuthResponseDTO(String token, String username, String nombreCompleto,
                            List<String> roles, LocalDateTime expirationTime) {
-        this(token, "Bearer", username, nombreCompleto, roles, expirationTime);
+        this(token, "Bearer", username, nombreCompleto, roles, expirationTime, null);
+    }
+
+    public AuthResponseDTO(String token, String username, String nombreCompleto,
+                           List<String> roles, LocalDateTime expirationTime, Integer conductorId) {
+        this(token, "Bearer", username, nombreCompleto, roles, expirationTime, conductorId);
     }
 }

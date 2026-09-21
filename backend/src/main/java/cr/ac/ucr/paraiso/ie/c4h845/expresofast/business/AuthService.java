@@ -53,7 +53,8 @@ public class AuthService {
                 usuario.getUsername(),
                 usuario.getNombreCompleto(),
                 roles,
-                tokenProvider.obtenerExpiracion(token));
+                tokenProvider.obtenerExpiracion(token),
+                idConductorDe(usuario));
     }
 
     /** Datos del usuario que porta el token, para el encabezado del tablero. */
@@ -66,6 +67,12 @@ public class AuthService {
                 usuario.getUsername(),
                 usuario.getNombreCompleto(),
                 usuario.getRoles().stream().map(r -> r.getNombreRol()).toList(),
-                token == null ? null : tokenProvider.obtenerExpiracion(token));
+                token == null ? null : tokenProvider.obtenerExpiracion(token),
+                idConductorDe(usuario));
+    }
+
+    /** Permite al cliente mostrarle al conductor unicamente los envios de su ficha. */
+    private Integer idConductorDe(Usuario usuario) {
+        return usuario.getConductor() == null ? null : usuario.getConductor().getId();
     }
 }

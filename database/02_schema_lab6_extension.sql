@@ -18,9 +18,12 @@ CREATE TABLE dbo.Usuario (
     nombre_completo VARCHAR(100)  NOT NULL,
     email           VARCHAR(100)  NOT NULL,
     activo          BIT           NOT NULL,   -- 1: activo, 0: inactivo
+    conductor_id    INT           NULL,       -- solo lo usan los usuarios ROLE_CONDUCTOR
     CONSTRAINT PK_Usuario          PRIMARY KEY (usuario_id),
     CONSTRAINT UQ_Usuario_username UNIQUE (username),
-    CONSTRAINT UQ_Usuario_email    UNIQUE (email)
+    CONSTRAINT UQ_Usuario_email    UNIQUE (email),
+    CONSTRAINT FK_Usuario_Conductor FOREIGN KEY (conductor_id)
+        REFERENCES dbo.Conductor (conductor_id)
 );
 GO
 

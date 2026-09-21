@@ -52,6 +52,12 @@ public class Usuario implements Serializable {
             inverseJoinColumns = @JoinColumn(name = "rol_id"))
     private Set<Rol> roles = new LinkedHashSet<>();
 
+    /** Solo los usuarios con ROLE_CONDUCTOR apuntan a una ficha de Conductor. */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "conductor_id",
+            foreignKey = @ForeignKey(name = "FK_Usuario_Conductor"))
+    private Conductor conductor;
+
     public Usuario() {
     }
 
@@ -109,5 +115,13 @@ public class Usuario implements Serializable {
 
     public void setRoles(Set<Rol> roles) {
         this.roles = roles;
+    }
+
+    public Conductor getConductor() {
+        return conductor;
+    }
+
+    public void setConductor(Conductor conductor) {
+        this.conductor = conductor;
     }
 }
