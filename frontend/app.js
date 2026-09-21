@@ -12,8 +12,13 @@ const CLAVE_PERFIL = 'jwt_perfil';
 const VISTA_ACCESO = 'index.html';
 const VISTA_CONSOLA = 'dashboard.html';
 
+const ROL_ADMIN = 'ROLE_ADMIN';
+const ROL_OPERADOR = 'ROLE_OPERADOR';
+const ROL_CONDUCTOR = 'ROLE_CONDUCTOR';
+
 const estadoApp = {
     envios: [],
+    bitacora: [],
     filtro: 'TODOS',
     perfil: null
 };
@@ -39,6 +44,21 @@ function leerPerfil() {
     } catch {
         return null;
     }
+}
+
+const tieneRol = (...roles) =>
+    roles.some((rol) => (estadoApp.perfil?.roles || []).includes(rol));
+
+/** Oculta cada bloque data-rol que no corresponda al token; la autorizacion real la aplica la API. */
+function aplicarRoles() {
+    $('#usuarioRoles').innerHTML = (estadoApp.perfil.roles || [])
+        .map((rol) => `<span class="rol-etiqueta">${escapar(rol.replace('ROLE_', ''))}</span>`)
+        .join('');
+
+    $$('[data-rol]').forEach((elemento) => {
+        const permitidos = elemento.dataset.rol.split(/\s+/).filter(Boolean);
+        elemento.hidden = !tieneRol(...permitidos);
+    });
 }
 
 /** Limpia el almacenamiento y devuelve a la pantalla de acceso. */
@@ -133,10 +153,7 @@ function limpiarAlerta() {
 
 // 4. Consumo de la API protegida
 
-/**
- * Adjunta el encabezado Authorization en cada petición asíncrona.
- * Ante un 401 o un 403 limpia el almacenamiento y devuelve a index.html.
- */
+/** Adjunta Authorization en cada petición; ante 401 o 403 limpia la sesión y vuelve a index.html. */
 async function fetchWithAuth(url, opciones = {}) {
     const token = sessionStorage.getItem(CLAVE_TOKEN);
 
@@ -230,9 +247,43 @@ function iniciarAcceso() {
 // 6. Consola de operaciones (dashboard.html)
 
 function enviosVisibles() {
-    return estadoApp.filtro === 'TODOS'
-        ? estadoApp.envios
-        : estadoApp.envios.filter((envio) => envio.estadoEnvio === estadoApp.filtro);
+    return estadoApp.envios.filter((envio) => {
+        // El conductor solo ve los envios asignados a su propia ficha.
+        if (tieneRol(ROL_CONDUCTOR) && !tieneRol(ROL_ADMIN, ROL_OPERADOR)
+                && envio.conductorId !== estadoApp.perfil.conductorId) {
+            return false;
+        }
+        return estadoApp.filtro === 'TODOS' || envio.estadoEnvio === estadoApp.filtro;
+    });
+}
+
+/** Acciones que cada rol puede ejecutar sobre la tarjeta, segun su estado. */
+function accionesDe(envio) {
+    const acciones = [];
+    const pendiente = envio.estadoEnvio === 'PENDIENTE';
+    const enTransito = envio.estadoEnvio === 'EN_TRANSITO';
+
+    if (tieneRol(ROL_ADMIN, ROL_OPERADOR) && pendiente) {
+        acciones.push({ estado: 'EN_TRANSITO', texto: 'Despachar' });
+    }
+    if (tieneRol(ROL_ADMIN, ROL_CONDUCTOR) && enTransito) {
+        acciones.push({ estado: 'ENTREGADO', texto: 'Marcar entregado' });
+    }
+    if (tieneRol(ROL_ADMIN) && (pendiente || enTransito)) {
+        acciones.push({ estado: 'CANCELADO', texto: 'Cancelar' });
+    }
+
+    const botones = acciones.map((accion) =>
+        `<button type="button" class="boton-mini" data-accion="${accion.estado}"
+                 data-id="${envio.id}">${accion.texto}</button>`);
+
+    if (tieneRol(ROL_ADMIN)) {
+        botones.push(`<button type="button" class="boton-mini" data-bitacora="${envio.id}">
+                          Ver bitácora
+                      </button>`);
+    }
+
+    return botones.join('');
 }
 
 function plantillaEnvio(envio) {
@@ -265,6 +316,8 @@ function plantillaEnvio(envio) {
                 <span class="dato-valor">${escapar(envio.nombreConductor) || '—'}</span>
             </div>
         </div>
+
+        <footer class="envio-acciones">${accionesDe(envio)}</footer>
     </article>`;
 }
 
@@ -317,6 +370,152 @@ async function cargarIndicadores() {
     }
 }
 
+// 7. Acciones sobre un envío (PUT /api/envios/{id}/estado)
+
+async function cambiarEstado(id, nuevoEstado, boton) {
+    boton.disabled = true;
+    limpiarAlerta();
+
+    try {
+        const actualizado = await fetchWithAuth(`${API_ENVIOS}/${id}/estado`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                nuevoEstado,
+                observaciones: `Cambio aplicado desde la consola por ${estadoApp.perfil.username}`
+            })
+        });
+
+        const indice = estadoApp.envios.findIndex((envio) => envio.id === actualizado.id);
+        if (indice !== -1) estadoApp.envios[indice] = actualizado;
+
+        renderizar();
+        cargarIndicadores();
+        notificar(`${actualizado.codigoRastreo} → ${actualizado.estadoEnvio}`, 'exito');
+    } catch (error) {
+        boton.disabled = false;
+        mostrarAlerta(error.problema || { titulo: error.message, detalles: [] });
+        notificar(error.message, 'error');
+    }
+}
+
+function conectarAcciones() {
+    $('#enviosGrid').addEventListener('click', (evento) => {
+        const accion = evento.target.closest('[data-accion]');
+        if (accion) {
+            cambiarEstado(Number(accion.dataset.id), accion.dataset.accion, accion);
+            return;
+        }
+
+        const bitacora = evento.target.closest('[data-bitacora]');
+        if (bitacora) cargarBitacora(Number(bitacora.dataset.bitacora));
+    });
+}
+
+// 8. Bitácora de auditoría (aside, solo ROLE_ADMIN)
+
+function filasBitacoraVisibles() {
+    const desde = $('#bitacoraDesde').value;
+    const hasta = $('#bitacoraHasta').value;
+
+    return estadoApp.bitacora.filter((fila) => {
+        if (!fila.fechaCambio) return false;
+        const dia = fila.fechaCambio.slice(0, 10);
+        return (!desde || dia >= desde) && (!hasta || dia <= hasta);
+    });
+}
+
+function renderizarBitacora() {
+    const lista = $('#bitacoraLista');
+    const filas = filasBitacoraVisibles();
+
+    if (filas.length === 0) {
+        lista.innerHTML = '<li class="texto-apagado">Sin movimientos en el rango seleccionado.</li>';
+        return;
+    }
+
+    lista.innerHTML = filas.map((fila) => `
+        <li class="bitacora-item">
+            <p class="bitacora-transicion">
+                <span class="estado ${escapar(fila.estadoAnterior)}">${escapar(String(fila.estadoAnterior).replace('_', ' '))}</span>
+                <span aria-hidden="true">→</span>
+                <span class="estado ${escapar(fila.estadoNuevo)}">${escapar(String(fila.estadoNuevo).replace('_', ' '))}</span>
+            </p>
+            <p class="bitacora-meta">${formatearFecha(fila.fechaCambio)} · ${escapar(fila.usuario)}</p>
+            <p class="bitacora-observacion">${escapar(fila.observaciones) || 'Sin observaciones'}</p>
+        </li>`).join('');
+}
+
+async function cargarBitacora(envioId) {
+    const envio = estadoApp.envios.find((e) => e.id === envioId);
+    $('#bitacoraContexto').textContent = envio
+        ? `${envio.codigoRastreo} · ${envio.direccionDestino}`
+        : `Envío #${envioId}`;
+    $('#bitacoraLista').innerHTML = '<li class="texto-apagado">Cargando historial…</li>';
+
+    try {
+        estadoApp.bitacora = await fetchWithAuth(`${API_ENVIOS}/${envioId}/bitacora`);
+        renderizarBitacora();
+        $('#panelBitacora').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (error) {
+        $('#bitacoraLista').innerHTML =
+            `<li class="texto-apagado">No se pudo cargar la bitácora: ${escapar(error.message)}</li>`;
+    }
+}
+
+function conectarBitacora() {
+    ['#bitacoraDesde', '#bitacoraHasta'].forEach((selector) => {
+        $(selector).addEventListener('change', renderizarBitacora);
+    });
+    // El reset limpia los campos despues del evento: se difiere el repintado.
+    $('#formFiltroBitacora').addEventListener('reset', () => setTimeout(renderizarBitacora, 0));
+}
+
+// 9. Alta de vehículos (solo ROLE_ADMIN)
+
+function conectarDialogoVehiculo() {
+    const dialogo = $('#dialogoVehiculo');
+    const formulario = $('#formVehiculo');
+
+    $('#btnNuevoVehiculo').addEventListener('click', async () => {
+        try {
+            const empresas = await fetchWithAuth(`${API_BASE}/catalogos/empresas`);
+            $('#empresaId').innerHTML = empresas
+                .map((empresa) => `<option value="${empresa.id}">${escapar(empresa.nombre)}</option>`)
+                .join('');
+        } catch (error) {
+            console.warn('Catálogo de empresas no disponible:', error.message);
+        }
+        dialogo.showModal();
+    });
+
+    $('#btnCerrarDialogo').addEventListener('click', () => dialogo.close());
+
+    $('#btnGuardarVehiculo').addEventListener('click', async () => {
+        if (!formulario.reportValidity()) return;
+        limpiarAlerta();
+
+        try {
+            const creado = await fetchWithAuth(`${API_BASE}/vehiculos`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    placa: $('#placa').value.trim().toUpperCase(),
+                    capacidadKg: parseFloat($('#capacidadKg').value),
+                    estado: $('#estadoVehiculo').value,
+                    empresaId: Number($('#empresaId').value)
+                })
+            });
+
+            dialogo.close();
+            formulario.reset();
+            notificar(`Vehículo ${creado.placa} registrado.`, 'exito');
+            cargarIndicadores();
+        } catch (error) {
+            dialogo.close();
+            mostrarAlerta(error.problema || { titulo: error.message, detalles: [] });
+        }
+    });
+}
+
 function conectarFiltros() {
     $$('.filtro').forEach((boton) => {
         boton.addEventListener('click', () => {
@@ -340,14 +539,22 @@ async function iniciarConsola() {
     estadoApp.perfil = leerPerfil() || { roles: [] };
     $('#usuarioNombre').textContent = estadoApp.perfil.nombreCompleto || estadoApp.perfil.username;
 
+    aplicarRoles();
+
     $('#btnLogout').addEventListener('click', () => cerrarSesion());
     conectarFiltros();
+    conectarAcciones();
+
+    if (tieneRol(ROL_ADMIN)) {
+        conectarBitacora();
+        conectarDialogoVehiculo();
+    }
 
     await cargarEnvios();
     await cargarIndicadores();
 }
 
-// 7. Arranque: cada vista engancha su propia lógica
+// 10. Arranque: cada vista engancha su propia lógica
 
 document.addEventListener('DOMContentLoaded', () => {
     if ($('#loginForm')) {
