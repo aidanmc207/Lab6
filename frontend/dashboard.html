@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpresoFast · Consola de operación logística</title>
+    <meta name="description" content="Consola de operación logística de ExpresoFast: envíos, flota y auditoría">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="pagina-consola">
+
+<header class="barra-superior">
+    <p class="logotipo" aria-hidden="true">EF</p>
+
+    <h1 class="barra-titulo">
+        ExpresoFast
+        <small>Consola de Operación Logística</small>
+    </h1>
+
+    <p class="sesion">
+        <span class="sesion-nombre" id="usuarioNombre">—</span>
+        <span class="sesion-roles" id="usuarioRoles"></span>
+    </p>
+
+    <button type="button" id="btnNuevoVehiculo" class="boton boton-secundario" data-rol="ROLE_ADMIN">
+        Registrar vehículo
+    </button>
+
+    <button type="button" id="btnLogout" class="boton boton-fantasma">Cerrar sesión</button>
+</header>
+
+<nav class="navegacion" aria-label="Filtrar envíos por estado">
+    <ul>
+        <li><button type="button" class="filtro activo" data-estado="TODOS" aria-pressed="true">Todos</button></li>
+        <li><button type="button" class="filtro" data-estado="PENDIENTE" aria-pressed="false">Pendientes</button></li>
+        <li><button type="button" class="filtro" data-estado="EN_TRANSITO" aria-pressed="false">En Tránsito</button></li>
+        <li><button type="button" class="filtro" data-estado="ENTREGADO" aria-pressed="false">Entregados</button></li>
+    </ul>
+</nav>
+
+<div class="disposicion">
+
+    <main>
+        <p id="alertaErrores" class="alerta alerta-error" role="alert" aria-live="assertive" hidden></p>
+
+        <section id="kpiSection" aria-labelledby="tituloKpi">
+            <h2 id="tituloKpi" class="titulo-seccion">Indicadores de operación</h2>
+
+            <article class="kpi">
+                <h3>Total Envíos</h3>
+                <p class="kpi-valor" id="kpiTotal">0</p>
+            </article>
+
+            <article class="kpi kpi-flota">
+                <h3>Vehículos Activos</h3>
+                <p class="kpi-valor" id="kpiVehiculos">0</p>
+            </article>
+
+            <article class="kpi kpi-entregado">
+                <h3>Paquetes Entregados</h3>
+                <p class="kpi-valor" id="kpiEntregados">0</p>
+            </article>
+        </section>
+
+        <section id="enviosGrid" aria-labelledby="tituloEnvios" aria-busy="true">
+            <h2 id="tituloEnvios" class="titulo-seccion">
+                Envíos monitoreados
+                <small class="texto-apagado" id="resumenListado">Cargando…</small>
+            </h2>
+            <!-- Las tarjetas <article> se inyectan desde app.js -->
+        </section>
+
+        <p id="mensajeVacio" class="vacio" hidden>No hay envíos que coincidan con el filtro seleccionado.</p>
+    </main>
+
+    <aside id="panelBitacora" aria-labelledby="tituloBitacora" data-rol="ROLE_ADMIN" hidden>
+        <h2 id="tituloBitacora" class="titulo-seccion">Bitácora de auditoría</h2>
+        <p class="texto-apagado" id="bitacoraContexto">
+            Seleccione «Ver bitácora» en un envío para revisar su historial.
+        </p>
+
+        <form class="bitacora-filtros" id="formFiltroBitacora">
+            <p class="campo">
+                <label for="bitacoraDesde">Desde</label>
+                <input type="date" id="bitacoraDesde">
+            </p>
+            <p class="campo">
+                <label for="bitacoraHasta">Hasta</label>
+                <input type="date" id="bitacoraHasta">
+            </p>
+            <button type="reset" class="boton boton-fantasma">Limpiar</button>
+        </form>
+
+        <ol class="bitacora-lista" id="bitacoraLista" aria-live="polite"></ol>
+    </aside>
+
+</div>
+
+<footer class="pie">
+    <p>&copy; 2026 ExpresoFast · Todos los derechos reservados.</p>
+    <p>
+        IF0009 Desarrollo de Software IV · Laboratorio 8 · Carné C4H845 ·
+        <a href="mailto:soporte@expresofast.cr">Soporte</a> ·
+        <a href="tel:+50625741100">2574-1100</a>
+    </p>
+</footer>
+
+<dialog id="dialogoVehiculo" aria-labelledby="tituloDialogoVehiculo">
+    <form method="dialog" id="formVehiculo" novalidate>
+        <h2 id="tituloDialogoVehiculo">Registrar vehículo</h2>
+
+        <p class="campo">
+            <label for="placa">Placa</label>
+            <input type="text" id="placa" name="placa" required placeholder="CRC-3003" maxlength="10">
+        </p>
+
+        <p class="campo">
+            <label for="capacidadKg">Capacidad (kg)</label>
+            <input type="number" id="capacidadKg" name="capacidadKg" required min="0.01" step="0.01"
+                   placeholder="2500.00">
+        </p>
+
+        <p class="campo">
+            <label for="estadoVehiculo">Estado</label>
+            <select id="estadoVehiculo" name="estadoVehiculo" required>
+                <option value="DISPONIBLE">DISPONIBLE</option>
+                <option value="EN_RUTA">EN_RUTA</option>
+                <option value="MANTENIMIENTO">MANTENIMIENTO</option>
+            </select>
+        </p>
+
+        <p class="campo">
+            <label for="empresaId">Empresa</label>
+            <select id="empresaId" name="empresaId" required></select>
+        </p>
+
+        <p class="dialogo-acciones">
+            <button type="button" id="btnGuardarVehiculo" class="boton boton-primario">Guardar</button>
+            <button type="button" id="btnCerrarDialogo" class="boton boton-fantasma">Cancelar</button>
+        </p>
+    </form>
+</dialog>
+
+<p id="toast" class="toast" role="status" aria-live="polite" hidden></p>
+
+<script src="app.js"></script>
+</body>
+</html>

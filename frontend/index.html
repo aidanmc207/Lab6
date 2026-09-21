@@ -3,261 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExpresoFast · Tablero de Monitoreo de Envíos</title>
-    <meta name="description" content="Portal de logística y monitoreo de envíos express de ExpresoFast">
+    <title>ExpresoFast · Acceso a la consola de operación</title>
+    <meta name="description" content="Acceso a la consola de operación logística de ExpresoFast">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="pagina-acceso">
 
-<!-- BARRA SUPERIOR (Flexbox) -->
-<header class="topbar">
-    <div class="brand">
-        <span class="brand-mark" aria-hidden="true">EF</span>
-        <div>
-            <h1>ExpresoFast</h1>
-            <p class="brand-sub">Logística y monitoreo de envíos express</p>
-        </div>
-    </div>
-
-    <nav class="topnav" aria-label="Navegación principal">
-        <ul>
-            <li><a href="#tablero" class="active">Tablero</a></li>
-            <li data-rol="ROLE_ADMIN ROLE_OPERADOR"><a href="#registro">Registrar envío</a></li>
-            <li data-rol="ROLE_ADMIN"><a href="#flota">Gestión de flota</a></li>
-            <li><a href="#filtros">Filtros</a></li>
-        </ul>
-    </nav>
-
-    <div class="topbar-actions">
-        <span id="apiEstado" class="api-estado" role="status" aria-live="polite">Conectando…</span>
-
-        <!-- Identidad tomada del token JWT -->
-        <div class="usuario-chip" id="usuarioChip">
-            <span class="usuario-nombre" id="usuarioNombre">—</span>
-            <span class="usuario-roles" id="usuarioRoles"></span>
-        </div>
-
-        <button type="button" id="btnRefrescar" class="btn btn-ghost">Refrescar</button>
-        <button type="button" id="btnSalir" class="btn btn-ghost">Cerrar sesión</button>
-    </div>
+<header class="acceso-marca">
+    <p class="logotipo" aria-hidden="true">EF</p>
+    <h1>ExpresoFast</h1>
+    <p class="acceso-lema">Consola de Operación Logística</p>
 </header>
 
-<!-- CONTENIDO -->
-<main class="layout">
+<main class="acceso-main">
+    <section class="tarjeta-acceso" aria-labelledby="tituloAcceso">
+        <h2 id="tituloAcceso">Iniciar sesión</h2>
+        <p class="texto-apagado">Ingrese con las credenciales asignadas por la Dirección de TI.</p>
 
-    <!-- PANEL LATERAL DE FILTROS -->
-    <aside class="sidebar" id="filtros" aria-label="Filtros y acciones">
-
-        <section class="card" aria-labelledby="tituloFiltros">
-            <h2 id="tituloFiltros" class="card-title">Filtrar por estado</h2>
-            <div class="filtros" role="group" aria-label="Filtro de estado de envíos">
-                <button type="button" class="filtro activo" data-estado="TODOS" aria-pressed="true">
-                    Todos <span class="contador" data-contador="TODOS">0</span>
-                </button>
-                <button type="button" class="filtro" data-estado="PENDIENTE" aria-pressed="false">
-                    Pendiente <span class="contador" data-contador="PENDIENTE">0</span>
-                </button>
-                <button type="button" class="filtro" data-estado="EN_TRANSITO" aria-pressed="false">
-                    En tránsito <span class="contador" data-contador="EN_TRANSITO">0</span>
-                </button>
-                <button type="button" class="filtro" data-estado="ENTREGADO" aria-pressed="false">
-                    Entregado <span class="contador" data-contador="ENTREGADO">0</span>
-                </button>
-                <button type="button" class="filtro" data-estado="CANCELADO" aria-pressed="false">
-                    Cancelado <span class="contador" data-contador="CANCELADO">0</span>
-                </button>
-            </div>
-        </section>
-
-        <section class="card" aria-labelledby="tituloBusqueda">
-            <h2 id="tituloBusqueda" class="card-title">Búsqueda rápida</h2>
-            <label class="campo">
-                <span>Código de rastreo o destino</span>
-                <input type="search" id="buscador" placeholder="EXP-9001, Cartago…"
-                       autocomplete="off" aria-describedby="ayudaBusqueda">
-            </label>
-            <p id="ayudaBusqueda" class="ayuda">Filtra en pantalla los envíos ya cargados.</p>
-        </section>
-
-        <!-- Gestión de flota: solo ROLE_ADMIN -->
-        <section class="card" id="flota" data-rol="ROLE_ADMIN" aria-labelledby="tituloMasivo">
-            <h2 id="tituloMasivo" class="card-title">Gestión de flota</h2>
-            <p class="ayuda">
-                Cambia de una sola sentencia el estado de todos los envíos de un vehículo
-                (<code>@Modifying</code>). Endpoint exclusivo de <code>ROLE_ADMIN</code>.
+        <form id="loginForm" novalidate autocomplete="on">
+            <p class="campo">
+                <label for="username">Usuario</label>
+                <input type="text" id="username" name="username" required maxlength="50"
+                       autocomplete="username" autofocus placeholder="admin"
+                       aria-describedby="ayudaUsuario">
+                <small id="ayudaUsuario" class="texto-apagado">Nombre de usuario del sistema.</small>
             </p>
-            <form id="formMasivo" novalidate>
-                <label class="campo">
-                    <span>ID de vehículo</span>
-                    <input type="number" id="masivoVehiculoId" name="masivoVehiculoId"
-                           min="1" step="1" required list="listaVehiculos">
-                </label>
-                <label class="campo">
-                    <span>Nuevo estado</span>
-                    <select id="masivoEstado" name="masivoEstado" required>
-                        <option value="PENDIENTE">PENDIENTE</option>
-                        <option value="EN_TRANSITO">EN_TRANSITO</option>
-                        <option value="ENTREGADO">ENTREGADO</option>
-                        <option value="CANCELADO">CANCELADO</option>
-                    </select>
-                </label>
-                <label class="campo">
-                    <span>Observaciones para la bitácora</span>
-                    <input type="text" id="masivoObservaciones" name="masivoObservaciones"
-                           maxlength="250" placeholder="Unidad enviada a mantenimiento">
-                </label>
-                <button type="submit" class="btn btn-secundario">Aplicar a todo el vehículo</button>
-            </form>
-        </section>
-    </aside>
 
-    <!-- COLUMNA PRINCIPAL -->
-    <div class="contenido">
+            <p class="campo">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" name="password" required maxlength="100"
+                       autocomplete="current-password" placeholder="••••••••">
+            </p>
 
-        <!-- Indicadores KPI (CSS Grid) -->
-        <section class="kpis" id="tablero" aria-label="Indicadores generales">
-            <article class="kpi">
-                <p class="kpi-label">Total de envíos</p>
-                <p class="kpi-valor" id="kpiTotal">0</p>
-            </article>
-            <article class="kpi kpi-pendiente">
-                <p class="kpi-label">Pendientes</p>
-                <p class="kpi-valor" id="kpiPendiente">0</p>
-            </article>
-            <article class="kpi kpi-transito">
-                <p class="kpi-label">En tránsito</p>
-                <p class="kpi-valor" id="kpiTransito">0</p>
-            </article>
-            <article class="kpi kpi-entregado">
-                <p class="kpi-label">Entregados</p>
-                <p class="kpi-valor" id="kpiEntregado">0</p>
-            </article>
-        </section>
+            <p id="loginError" class="alerta alerta-error" role="alert" aria-live="polite" hidden></p>
 
-        <!-- Formulario de registro: oculto para ROLE_CONDUCTOR -->
-        <section class="card" id="registro" data-rol="ROLE_ADMIN ROLE_OPERADOR"
-                 aria-labelledby="tituloRegistro">
-            <h2 id="tituloRegistro" class="card-title">Registrar nuevo envío express</h2>
-
-            <form id="formEnvio" class="form-envio" novalidate>
-                <fieldset>
-                    <legend>Datos del paquete</legend>
-                    <div class="form-grid">
-                        <label class="campo">
-                            <span>Código de rastreo <abbr title="obligatorio">*</abbr></span>
-                            <input type="text" id="codigoRastreo" name="codigoRastreo"
-                                   maxlength="8" required placeholder="EXP-9901"
-                                   pattern="EXP-\d{4}" autocomplete="off"
-                                   aria-describedby="ayudaCodigo">
-                            <small id="ayudaCodigo" class="ayuda">Formato exigido por la API: <code>EXP-1234</code>.</small>
-                        </label>
-
-                        <label class="campo campo-ancho">
-                            <span>Dirección de destino <abbr title="obligatorio">*</abbr></span>
-                            <input type="text" id="direccionDestino" name="direccionDestino"
-                                   maxlength="200" required placeholder="Paraíso, Cartago">
-                        </label>
-
-                        <label class="campo">
-                            <span>Peso (kg) <abbr title="obligatorio">*</abbr></span>
-                            <input type="number" id="pesoKg" name="pesoKg"
-                                   min="0.01" step="0.01" required placeholder="12.50">
-                        </label>
-
-                        <label class="campo">
-                            <span>Costo (₡) <abbr title="obligatorio">*</abbr></span>
-                            <input type="number" id="costo" name="costo"
-                                   min="0" step="0.01" required placeholder="3500.00">
-                        </label>
-                    </div>
-                </fieldset>
-
-                <fieldset>
-                    <legend>Asignación de flota</legend>
-                    <div class="form-grid">
-                        <label class="campo">
-                            <span>ID de vehículo <abbr title="obligatorio">*</abbr></span>
-                            <input type="number" id="vehiculoId" name="vehiculoId"
-                                   min="1" step="1" required list="listaVehiculos"
-                                   aria-describedby="ayudaVehiculo">
-                            <small id="ayudaVehiculo" class="ayuda">Escriba el ID o elíjalo de la lista.</small>
-                            <datalist id="listaVehiculos"></datalist>
-                        </label>
-
-                        <label class="campo">
-                            <span>ID de conductor <abbr title="obligatorio">*</abbr></span>
-                            <input type="number" id="conductorId" name="conductorId"
-                                   min="1" step="1" required list="listaConductores"
-                                   aria-describedby="ayudaConductor">
-                            <small id="ayudaConductor" class="ayuda">Escriba el ID o elíjalo de la lista.</small>
-                            <datalist id="listaConductores"></datalist>
-                        </label>
-                    </div>
-                </fieldset>
-
-                <div class="form-acciones">
-                    <button type="submit" class="btn btn-primario" id="btnGuardar">Registrar envío</button>
-                    <button type="reset" class="btn btn-ghost">Limpiar</button>
-                </div>
-            </form>
-        </section>
-
-        <!-- Tablero de envíos -->
-        <section aria-labelledby="tituloEnvios">
-            <div class="seccion-encabezado">
-                <h2 id="tituloEnvios" class="card-title">Envíos monitoreados</h2>
-                <p class="ayuda" id="resumenListado">Cargando…</p>
-            </div>
-
-            <div id="tableroEnvios" class="grid-envios" aria-live="polite" aria-busy="true">
-                <!-- Las tarjetas <article> se inyectan desde app.js -->
-            </div>
-
-            <p id="mensajeVacio" class="vacio" hidden>No hay envíos que coincidan con el filtro seleccionado.</p>
-        </section>
-    </div>
+            <button type="submit" id="btnIngresar" class="boton boton-primario boton-bloque">
+                Ingresar
+            </button>
+        </form>
+    </section>
 </main>
 
 <footer class="pie">
-    <p>IF0009 · Desarrollo de Software IV · Laboratorio 6 · Carné C4H845 · II-2026</p>
+    <p>&copy; 2026 ExpresoFast · Todos los derechos reservados.</p>
+    <p>
+        IF0009 Desarrollo de Software IV · Laboratorio 8 · Carné C4H845 ·
+        <a href="mailto:soporte@expresofast.cr">soporte@expresofast.cr</a>
+    </p>
 </footer>
-
-<!-- MODAL DE BITÁCORA DE AUDITORÍA (posición fija + Flexbox) -->
-<div class="modal" id="modalBitacora" role="dialog" aria-modal="true"
-     aria-labelledby="tituloBitacora" hidden>
-    <div class="modal-fondo" data-cerrar-modal></div>
-
-    <div class="modal-caja" role="document">
-        <header class="modal-head">
-            <div>
-                <h2 id="tituloBitacora" class="card-title">Bitácora de auditoría</h2>
-                <p class="ayuda" id="bitacoraEnvioInfo">—</p>
-            </div>
-            <button type="button" class="btn-cerrar" data-cerrar-modal
-                    aria-label="Cerrar bitácora">&times;</button>
-        </header>
-
-        <!-- Reto autónomo: filtro por rango de fechas -->
-        <form class="bitacora-filtros" id="formFiltroBitacora">
-            <label class="campo">
-                <span>Desde</span>
-                <input type="date" id="bitacoraDesde">
-            </label>
-            <label class="campo">
-                <span>Hasta</span>
-                <input type="date" id="bitacoraHasta">
-            </label>
-            <button type="reset" class="btn btn-ghost" id="btnLimpiarFechas">Limpiar fechas</button>
-        </form>
-
-        <div class="modal-cuerpo" id="bitacoraCuerpo" aria-live="polite">
-            <p class="ayuda">Cargando historial…</p>
-        </div>
-    </div>
-</div>
-
-<!-- Notificaciones accesibles -->
-<div id="toast" class="toast" role="status" aria-live="assertive" hidden></div>
 
 <script src="app.js"></script>
 </body>
