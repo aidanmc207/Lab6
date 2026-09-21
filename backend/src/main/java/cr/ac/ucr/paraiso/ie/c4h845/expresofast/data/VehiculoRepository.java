@@ -15,6 +15,9 @@ public interface VehiculoRepository extends JpaRepository<Vehiculo, Integer> {
 
     List<Vehiculo> findByEstado(String estado);
 
+    /** Flota operativa: todo lo que no esta detenido en mantenimiento. */
+    long countByEstadoNot(String estado);
+
     /** JOIN FETCH para el catalogo: trae el vehiculo junto a su empresa duena. */
     @Query("SELECT v FROM Vehiculo v LEFT JOIN FETCH v.empresa ORDER BY v.placa ASC")
     List<Vehiculo> findAllConEmpresa();

@@ -99,7 +99,8 @@ public class EnvioService {
                 envioRepository.countByEstadoEnvio(Envio.PENDIENTE),
                 envioRepository.countByEstadoEnvio(Envio.EN_TRANSITO),
                 envioRepository.countByEstadoEnvio(Envio.ENTREGADO),
-                envioRepository.countByEstadoEnvio(Envio.CANCELADO));
+                envioRepository.countByEstadoEnvio(Envio.CANCELADO),
+                vehiculoRepository.countByEstadoNot(Vehiculo.MANTENIMIENTO));
     }
 
     /** GET /api/envios/{id}/bitacora -> historial de auditoria del envio. */
