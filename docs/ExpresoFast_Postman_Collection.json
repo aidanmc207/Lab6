@@ -270,7 +270,7 @@
           }
         },
         {
-          "name": "PATCH /api/envios/{id}/estado (ADMIN, CONDUCTOR)",
+          "name": "PUT /api/envios/{id}/estado despacho del OPERADOR",
           "event": [
             {
               "listen": "test",
@@ -284,8 +284,8 @@
             }
           ],
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_conductor}}", "type": "string" }] },
-            "method": "PATCH",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_operador}}", "type": "string" }] },
+            "method": "PUT",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
@@ -296,7 +296,64 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "envios", "{{envioId}}", "estado"]
             },
-            "description": "Genera automaticamente un registro en BitacoraEnvio con el usuario del token."
+            "description": "El operador solo puede despachar a EN_TRANSITO. Genera el registro en BitacoraEnvio con el usuario del token."
+          }
+        },
+        {
+          "name": "PUT /api/envios/{id}/estado entrega del CONDUCTOR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Estado actualizado', () => pm.expect(pm.response.json().estadoEnvio).to.eql('ENTREGADO'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_conductor}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevoEstado\": \"ENTREGADO\",\n  \"observaciones\": \"Entregado al destinatario\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/envios/{{envioId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "envios", "{{envioId}}", "estado"]
+            },
+            "description": "Debe ejecutarse despues del despacho del operador: el conductor solo confirma la entrega."
+          }
+        },
+        {
+          "name": "PUT estado con una transicion ajena al rol (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('403 Forbidden', () => pm.response.to.have.status(403));"]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token_operador}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevoEstado\": \"ENTREGADO\",\n  \"observaciones\": \"El operador no confirma entregas\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/envios/{{envioId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "envios", "{{envioId}}", "estado"]
+            },
+            "description": "Verifica el @PreAuthorize que reparte las transiciones entre los roles."
           }
         },
         {
